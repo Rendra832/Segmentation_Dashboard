@@ -82,7 +82,7 @@ if menu == "Home":
         st.markdown(f"**Jumlah Cluster:** {total_clusters}")
 
     elif dataset == "Customer Clusters":
-        st.subheader("Data Visualisasi (Quantity + Country)")
+        st.subheader("Data Visualisasi Quantity + Country")
         st.dataframe(df_vis, use_container_width=True)
         min_quantity = df_vis['Quantity'].min() if 'Quantity' in df_vis.columns else 0
         median_quantity = df_vis['Quantity'].median() if 'Quantity' in df_vis.columns else 0
@@ -131,7 +131,7 @@ elif menu == "Charts":
         fig_m = px.box(df_customer, x=cluster_col, y="Monetary", title="Monetary per Cluster")
         st.plotly_chart(fig_m, use_container_width=True)
 
-    elif chart_dataset == "Customer Cluster":
+    elif chart_dataset == "Customer Clusters":
         st.subheader("Grafik Ringkasan")
         numeric_cols = df_summary.select_dtypes(include="number").columns
         for col in numeric_cols:
@@ -139,35 +139,43 @@ elif menu == "Charts":
             st.plotly_chart(fig, use_container_width=True)
 
 # ================================
-# PCA VISUALIZATION
+# PCA / UMAP VISUALIZATION
 # ================================
 elif menu == "Visualization":
-    st.title("📐 Visualisasi PCA")
-    pca_source = st.selectbox("Pilih Dataset PCA", ["Product PCA", "Customer PCA", "Customer Cluster PC"])
+    st.title("📐 Visualisasi Dimensi Reduksi")
+    method = st.selectbox("Pilih Metode Reduksi Dimensi", ["PCA", "UMAP"])
+    data_source = st.selectbox("Pilih Dataset", ["Product", "Customer", "Customer Cluster"])
 
-    if pca_source == "Product PCA":
+    if data_source == "Product":
         df = df_product.copy()
-        x, y = "PCA1", "PCA2"
         color_col = "Cluster_Label"
+        if method == "PCA":
+            x, y = "PCA1", "PCA2"
+        else:  # UMAP
+            x, y = "UMAP1", "UMAP2"
 
-    elif pca_source == "Customer PCA":
+    elif data_source == "Customer":
         df = df_customer.copy()
-        x, y = "PC1", "PC2"
-        color_col = "Cluster_Final" if "Cluster_Final" in df_customer.columns else "cluster"
+        color_col = "Cluster_Final"
+        if method == "PCA":
+            x, y = "PC1", "PC2"
+        else:
+            x, y = "UMAP1", "UMAP2"
 
-    else:
+    else:  # Customer Cluster
         df = df_vis.copy()
-        x, y = "PCA1", "PCA2"
-        color_col = "Cluster_DBSCAN" if "Cluster_DBSCAN" in df_vis.columns else "cluster"
+        color_col = "Cluster_DBSCAN"
+        if method == "PCA":
+            x, y = "PCA1", "PCA2"
+        else:
+            x, y = "UMAP1", "UMAP2"
 
-    st.subheader(f"PCA Scatter Plot — {pca_source}")
-    if color_col in df.columns:
-        df[color_col] = df[color_col].astype(str)
+    st.subheader(f"{method} Scatter Plot — {data_source}")
+    df[color_col] = df[color_col].astype(str)
     unique_clusters = sorted(df[color_col].unique())
     color_map = {cluster: high_contrast_palette[i % len(high_contrast_palette)] for i, cluster in enumerate(unique_clusters)}
     fig = px.scatter(df, x=x, y=y, color=df[color_col], color_discrete_map=color_map, hover_data=df.columns)
     st.plotly_chart(fig, use_container_width=True)
-
 # ================================
 # FULL ANALYSIS
 # ================================
