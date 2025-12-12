@@ -132,10 +132,24 @@ elif menu == "Charts":
         st.plotly_chart(fig_m, use_container_width=True)
 
     elif chart_dataset == "Customer Clusters":
-        st.subheader("Grafik Ringkasan")
-        numeric_cols = df_summary.select_dtypes(include="number").columns
-        for col in numeric_cols:
-            fig = px.bar(df_summary, x="Cluster_Label", y=col, title=f"{col} per Cluster")
+    st.subheader("Grafik Ringkasan Customer Cluster")
+    # Kolom yang ingin divisualisasikan
+    chart_columns = [
+        "Avg Quantity (Mean)",
+        "Min Quantity",
+        "Median Quantity",
+        "Max Quantity",
+        "Total Count"
+    ]
+
+    for col in chart_columns:
+        if col in df_summary.columns:
+            fig = px.bar(
+                df_summary,
+                x="Cluster_Label",
+                y=col,
+                title=f"{col} per Cluster"
+            )
             st.plotly_chart(fig, use_container_width=True)
 
 # ================================
