@@ -15,7 +15,7 @@ def load_all():
     df_product = pd.read_csv("product_recommendation.csv")
     df_customer = pd.read_csv("final_customer_cluster.csv")
     df_summary = pd.read_csv("cluster_summary_results.csv")
-    df_vis = pd.read_csv("cluster_visualization_data.csv")   # DBSCAN PCA
+    df_vis = pd.read_csv("cluster_visualization_data.csv")   # DBSCAN PCA / UMAP
     return df_product, df_customer, df_summary, df_vis
 
 df_product, df_customer, df_summary, df_vis = load_all()
@@ -101,7 +101,7 @@ if menu == "Home":
 elif menu == "Charts":
     st.title("📈 Visualisasi Statistik Cluster")
     chart_dataset = st.selectbox("Pilih Dataset untuk Chart",
-                                 ["Product Recommendation", "Customer Segmentation", "Customer Cluster "])
+                                 ["Product Recommendation", "Customer Segmentation", "Customer Clusters"])
 
     if chart_dataset == "Product Recommendation":
         st.subheader("Grafik Penjualan per Cluster Produk")
@@ -132,25 +132,25 @@ elif menu == "Charts":
         st.plotly_chart(fig_m, use_container_width=True)
 
     elif chart_dataset == "Customer Clusters":
-    st.subheader("Grafik Ringkasan Customer Cluster")
-    # Kolom yang ingin divisualisasikan
-    chart_columns = [
-        "Avg Quantity (Mean)",
-        "Min Quantity",
-        "Median Quantity",
-        "Max Quantity",
-        "Total Count"
-    ]
+        st.subheader("Grafik Ringkasan Customer Cluster")
+        # Kolom yang ingin divisualisasikan
+        chart_columns = [
+            "Avg Quantity (Mean)",
+            "Min Quantity",
+            "Median Quantity",
+            "Max Quantity",
+            "Total Count"
+        ]
 
-    for col in chart_columns:
-        if col in df_summary.columns:
-            fig = px.bar(
-                df_summary,
-                x="Cluster_Label",
-                y=col,
-                title=f"{col} per Cluster"
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        for col in chart_columns:
+            if col in df_summary.columns:
+                fig = px.bar(
+                    df_summary,
+                    x="Cluster_Label",
+                    y=col,
+                    title=f"{col} per Cluster"
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
 # ================================
 # PCA / UMAP VISUALIZATION
@@ -190,6 +190,7 @@ elif menu == "Visualization":
     color_map = {cluster: high_contrast_palette[i % len(high_contrast_palette)] for i, cluster in enumerate(unique_clusters)}
     fig = px.scatter(df, x=x, y=y, color=df[color_col], color_discrete_map=color_map, hover_data=df.columns)
     st.plotly_chart(fig, use_container_width=True)
+
 # ================================
 # FULL ANALYSIS
 # ================================
