@@ -1,4 +1,4 @@
 # Nama Project
 
-Deskripsi singkat tentang project ini.
+Deskripsi singkat tentang project ini
 
