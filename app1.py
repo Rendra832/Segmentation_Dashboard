@@ -156,7 +156,7 @@ elif menu == "Charts":
 # PCA / UMAP VISUALIZATION
 # ================================
 elif menu == "Visualization":
-    st.title("📐 Visualisasi Dimensi Reduksi (PCA + UMAP)")
+    st.title("📐 Visualisasi Dimensi Reduksi")
     data_source = st.selectbox("Pilih Dataset", ["Product", "Customer", "Customer Cluster"])
 
     # Tentukan dataset dan kolom warna
@@ -164,14 +164,17 @@ elif menu == "Visualization":
         df = df_product.copy()
         color_col = "Cluster_Label"
         x_pca, y_pca = "PCA1", "PCA2"
+        show_umap = True
     elif data_source == "Customer":
         df = df_customer.copy()
         color_col = "Cluster_Final"
         x_pca, y_pca = "PC1", "PC2"
+        show_umap = False
     else:
         df = df_vis.copy()
         color_col = "Cluster_DBSCAN"
         x_pca, y_pca = "PCA1", "PCA2"
+        show_umap = False
 
     df[color_col] = df[color_col].astype(str)
     unique_clusters = sorted(df[color_col].unique())
@@ -189,16 +192,17 @@ elif menu == "Visualization":
     else:
         st.warning(f"Kolom {x_pca} atau {y_pca} tidak ditemukan di dataset {data_source}")
 
-    # ---- UMAP ----
-    st.subheader(f"UMAP Scatter Plot — {data_source}")
-    if "UMAP1" in df.columns and "UMAP2" in df.columns:
-        fig_umap = px.scatter(
-            df, x="UMAP1", y="UMAP2", color=color_col,
-            color_discrete_map=color_map, hover_data=df.columns
-        )
-        st.plotly_chart(fig_umap, use_container_width=True)
-    else:
-        st.warning(f"Kolom UMAP1 atau UMAP2 tidak ditemukan di dataset {data_source}")
+    # ---- UMAP hanya untuk Product ----
+    if show_umap:
+        st.subheader(f"UMAP Scatter Plot — {data_source}")
+        if "UMAP1" in df.columns and "UMAP2" in df.columns:
+            fig_umap = px.scatter(
+                df, x="UMAP1", y="UMAP2", color=color_col,
+                color_discrete_map=color_map, hover_data=df.columns
+            )
+            st.plotly_chart(fig_umap, use_container_width=True)
+        else:
+            st.warning("Kolom UMAP1 atau UMAP2 tidak ditemukan di dataset Product")
 
 # ================================
 # FULL ANALYSIS
