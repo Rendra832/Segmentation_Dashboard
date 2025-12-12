@@ -156,40 +156,49 @@ elif menu == "Charts":
 # PCA / UMAP VISUALIZATION
 # ================================
 elif menu == "Visualization":
-    st.title("📐 Visualisasi Dimensi Reduksi")
-    method = st.selectbox("Pilih Metode Reduksi Dimensi", ["PCA", "UMAP"])
+    st.title("📐 Visualisasi Dimensi Reduksi (PCA + UMAP)")
     data_source = st.selectbox("Pilih Dataset", ["Product", "Customer", "Customer Cluster"])
 
+    # Tentukan dataset dan kolom warna
     if data_source == "Product":
         df = df_product.copy()
         color_col = "Cluster_Label"
-        if method == "PCA":
-            x, y = "PCA1", "PCA2"
-        else:  # UMAP
-            x, y = "UMAP1", "UMAP2"
-
+        x_pca, y_pca = "PCA1", "PCA2"
     elif data_source == "Customer":
         df = df_customer.copy()
         color_col = "Cluster_Final"
-        if method == "PCA":
-            x, y = "PC1", "PC2"
-        else:
-            x, y = "UMAP1", "UMAP2"
-
-    else:  # Customer Cluster
+        x_pca, y_pca = "PC1", "PC2"
+    else:
         df = df_vis.copy()
         color_col = "Cluster_DBSCAN"
-        if method == "PCA":
-            x, y = "PCA1", "PCA2"
-        else:
-            x, y = "UMAP1", "UMAP2"
+        x_pca, y_pca = "PCA1", "PCA2"
 
-    st.subheader(f"{method} Scatter Plot — {data_source}")
     df[color_col] = df[color_col].astype(str)
     unique_clusters = sorted(df[color_col].unique())
-    color_map = {cluster: high_contrast_palette[i % len(high_contrast_palette)] for i, cluster in enumerate(unique_clusters)}
-    fig = px.scatter(df, x=x, y=y, color=df[color_col], color_discrete_map=color_map, hover_data=df.columns)
-    st.plotly_chart(fig, use_container_width=True)
+    color_map = {cluster: high_contrast_palette[i % len(high_contrast_palette)] 
+                 for i, cluster in enumerate(unique_clusters)}
+
+    # ---- PCA ----
+    st.subheader(f"PCA Scatter Plot — {data_source}")
+    if x_pca in df.columns and y_pca in df.columns:
+        fig_pca = px.scatter(
+            df, x=x_pca, y=y_pca, color=color_col,
+            color_discrete_map=color_map, hover_data=df.columns
+        )
+        st.plotly_chart(fig_pca, use_container_width=True)
+    else:
+        st.warning(f"Kolom {x_pca} atau {y_pca} tidak ditemukan di dataset {data_source}")
+
+    # ---- UMAP ----
+    st.subheader(f"UMAP Scatter Plot — {data_source}")
+    if "UMAP1" in df.columns and "UMAP2" in df.columns:
+        fig_umap = px.scatter(
+            df, x="UMAP1", y="UMAP2", color=color_col,
+            color_discrete_map=color_map, hover_data=df.columns
+        )
+        st.plotly_chart(fig_umap, use_container_width=True)
+    else:
+        st.warning(f"Kolom UMAP1 atau UMAP2 tidak ditemukan di dataset {data_source}")
 
 # ================================
 # FULL ANALYSIS
