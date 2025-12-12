@@ -1,3 +1,4 @@
+%%writefile app1.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -14,9 +15,11 @@ st.set_page_config(page_title="Segmentation Dashboard", layout="wide")
 def load_all():
     df_product = pd.read_csv("product_recommendation.csv")
     df_customer = pd.read_csv("final_customer_cluster.csv")
-    return df_product, df_customer
+    df_summary = pd.read_csv("cluster_summary_results.csv")
+    df_vis = pd.read_csv("cluster_visualization_data.csv")   # DBSCAN PCA
+    return df_product, df_customer, df_summary, df_vis
 
-df_product, df_customer = load_all()
+df_product, df_customer, df_summary, df_vis = load_all()
 
 # ================================
 # HIGH-CONTRAST COLOR PALETTE (40 warna)
@@ -51,6 +54,7 @@ if menu == "Home":
         [
             "Product Recommendation",
             "Customer Segmentation",
+            "Customer Clusters"
         ]
     )
 
@@ -78,15 +82,29 @@ if menu == "Home":
         st.markdown(f"**Monetary Terbesar:** {max_monetary:,.2f}")
         st.markdown(f"**Jumlah Cluster:** {total_clusters}")
 
+    elif dataset == "Customer Clusters":
+        st.subheader("Data Visualisasi (Quantity + Country)")
+        st.dataframe(df_vis, use_container_width=True)
+        min_quantity = df_vis['Quantity'].min() if 'Quantity' in df_vis.columns else 0
+        median_quantity = df_vis['Quantity'].median() if 'Quantity' in df_vis.columns else 0
+        max_quantity = df_vis['Quantity'].max() if 'Quantity' in df_vis.columns else 0
+        total_records = df_vis.shape[0]
+        total_clusters = df_vis['Cluster_DBSCAN'].nunique() if 'Cluster_DBSCAN' in df_vis.columns else 0
+        st.markdown(f"**Min Quantity:** {min_quantity}")
+        st.markdown(f"**Median Quantity:** {median_quantity}")
+        st.markdown(f"**Max Quantity:** {max_quantity}")
+        st.markdown(f"**Total Record:** {total_records}")
+        st.markdown(f"**Jumlah Cluster:** {total_clusters}")
+
 # ================================
 # CHARTS
 # ================================
 elif menu == "Charts":
     st.title("📈 Visualisasi Statistik Cluster")
     chart_dataset = st.selectbox("Pilih Dataset untuk Chart",
-                                 ["Product", "Customer"])
+                                 ["Product Recommendation", "Customer Segmentation", "Customer Cluster "])
 
-    if chart_dataset == "Product":
+    if chart_dataset == "Product Recommendation":
         st.subheader("Grafik Penjualan per Cluster Produk")
         if "Cluster_Label" in df_product.columns:
             fig1 = px.bar(
@@ -103,7 +121,7 @@ elif menu == "Charts":
                 )
                 st.plotly_chart(fig2, use_container_width=True)
 
-    elif chart_dataset == "Customer":
+    elif chart_dataset == "Customer Segmentation":
         st.subheader("Grafik RFM Pelanggan")
         cluster_col = "Cluster_Final" if "Cluster_Final" in df_customer.columns else "cluster"
         fig_r = px.box(df_customer, x=cluster_col, y="Recency", title="Recency per Cluster")
@@ -114,41 +132,41 @@ elif menu == "Charts":
         fig_m = px.box(df_customer, x=cluster_col, y="Monetary", title="Monetary per Cluster")
         st.plotly_chart(fig_m, use_container_width=True)
 
+    elif chart_dataset == "Customer Cluster":
+        st.subheader("Grafik Ringkasan")
+        numeric_cols = df_summary.select_dtypes(include="number").columns
+        for col in numeric_cols:
+            fig = px.bar(df_summary, x="Cluster_Label", y=col, title=f"{col} per Cluster")
+            st.plotly_chart(fig, use_container_width=True)
+
 # ================================
-# VISUALIZATION (PCA + UMAP)
+# PCA VISUALIZATION
 # ================================
 elif menu == "Visualization":
-    st.title("📐 Visualisasi Dimensionality Reduction")
-    plot_type = st.selectbox("Pilih Jenis Plot", ["PCA", "UMAP"])
-    dataset_viz = st.selectbox("Pilih Dataset", ["Product", "Customer"])
+    st.title("📐 Visualisasi PCA")
+    pca_source = st.selectbox("Pilih Dataset PCA", ["Product PCA", "Customer PCA", "Customer Cluster PC"])
 
-    if dataset_viz == "Product":
+    if pca_source == "Product PCA":
         df = df_product.copy()
-        if plot_type == "PCA":
-            x, y = "PCA1", "PCA2"
-        else:
-            x, y = "UMAP1", "UMAP2"
+        x, y = "PCA1", "PCA2"
         color_col = "Cluster_Label"
 
-    elif dataset_viz == "Customer":
+    elif pca_source == "Customer PCA":
         df = df_customer.copy()
-        if plot_type == "PCA":
-            x, y = "PC1", "PC2"
-        else:
-            x, y = "UMAP1", "UMAP2"
+        x, y = "PC1", "PC2"
         color_col = "Cluster_Final" if "Cluster_Final" in df_customer.columns else "cluster"
 
-    st.subheader(f"{plot_type} Scatter Plot — {dataset_viz}")
+    else:
+        df = df_vis.copy()
+        x, y = "PCA1", "PCA2"
+        color_col = "Cluster_DBSCAN" if "Cluster_DBSCAN" in df_vis.columns else "cluster"
+
+    st.subheader(f"PCA Scatter Plot — {pca_source}")
     if color_col in df.columns:
         df[color_col] = df[color_col].astype(str)
     unique_clusters = sorted(df[color_col].unique())
     color_map = {cluster: high_contrast_palette[i % len(high_contrast_palette)] for i, cluster in enumerate(unique_clusters)}
-    fig = px.scatter(
-        df, x=x, y=y, color=df[color_col],
-        color_discrete_map=color_map,
-        hover_data=df.columns,
-        title=f"{plot_type} Scatter Plot"
-    )
+    fig = px.scatter(df, x=x, y=y, color=df[color_col], color_discrete_map=color_map, hover_data=df.columns)
     st.plotly_chart(fig, use_container_width=True)
 
 # ================================
@@ -156,7 +174,41 @@ elif menu == "Visualization":
 # ================================
 else:
     st.title("🧠 Analisis Lengkap Segmentation")
+    
     st.markdown("""
-    Menu ini hanya menampilkan insight/analisis berdasarkan data, tanpa menampilkan tabel.
-    Anda bisa menambahkan visualisasi, ringkasan statistik, dan insight penting di sini.
+    Menu ini menampilkan insight dan analisis dari seluruh dataset, tanpa menampilkan tabel mentah.
+    Analisis dibagi berdasarkan kategori data: Product Recommendation, Customer Segmentation, dan Customer Cluster.
+    """)
+
+    # ---- Product Recommendation ----
+    st.subheader("📦 Product Recommendation")
+    top_products = df_product.sort_values("TotalRevenue", ascending=False).head(5)
+    low_margin_high_volume = df_product[df_product["Cluster_Label"]=="Low Margin High Volume"].shape[0]
+    st.markdown(f"- Total produk: **{df_product.shape[0]}**")
+    st.markdown(f"- Total revenue: **{df_product['TotalRevenue'].sum():,.2f}**")
+    st.markdown(f"- Produk dengan revenue tertinggi: {top_products.iloc[0]['Description']} (**{top_products.iloc[0]['TotalRevenue']:,.2f}**)")    
+    st.markdown(f"- Produk kategori 'Low Margin High Volume': **{low_margin_high_volume}**")
+    st.markdown("💡 Insight: Produk dengan volume penjualan tinggi tapi margin rendah perlu strategi bundling atau kampanye promosi untuk meningkatkan profitabilitas.")
+
+    # ---- Customer Segmentation ----
+    st.subheader("👥 Customer Segmentation")
+    total_customers = df_customer.shape[0]
+    top_cluster = df_customer.groupby("Cluster_Final")["Monetary"].mean().idxmax()
+    st.markdown(f"- Total pelanggan: **{total_customers}**")
+    st.markdown(f"- Cluster dengan nilai monetary rata-rata tertinggi: **{top_cluster}**")
+    st.markdown("💡 Insight: Fokus retention dan personalized marketing pada cluster bernilai tinggi dapat meningkatkan lifetime value pelanggan.")
+
+    # ---- Customer Cluster Summary ----
+    st.subheader("📊 Customer Cluster Summary")
+    highest_demand_cluster = df_summary.sort_values("Avg Quantity (Mean)", ascending=False).iloc[0]["Cluster_Label"]
+    st.markdown(f"- Cluster dengan rata-rata quantity tertinggi: **{highest_demand_cluster}**")
+    st.markdown(f"- Total record di semua cluster: **{df_summary['Total Count'].sum():,}**")
+    st.markdown("💡 Insight: Cluster dengan permintaan tinggi dapat dijadikan prioritas dalam perencanaan stok dan kampanye penjualan.")
+
+    # ---- Kesimpulan Umum ----
+    st.subheader("🔍 Kesimpulan Umum")
+    st.markdown("""
+    - Produk dengan performa tinggi dan volume penjualan tinggi harus mendapat perhatian khusus dalam strategi promosi dan stok.
+    - Pelanggan dengan nilai monetary tinggi penting untuk strategi retention dan upselling.
+    - Data cluster memberikan insight tentang distribusi demand, sehingga perencanaan stok bisa lebih efisien.
     """)
